@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Proxy Design Pattern | PatternLab</title>
+
+<style>
+:root{
+    --bg:#f7f9fc;
+    --surface:#ffffff;
+    --surface2:#f1f5f9;
+    --text:#172033;
+    --muted:#64748b;
+    --primary:#4f46e5;
+    --primary2:#6366f1;
+    --border:#dbe3ee;
+    --success:#16a34a;
+    --danger:#dc2626;
+    --warning:#d97706;
+    --navy:#0b1120;
+    --code:#020617;
+    --shadow:0 18px 50px rgba(15,23,42,.09);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+    font-family:Inter,Segoe UI,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    line-height:1.65;
+}
+a{text-decoration:none;color:inherit}
+button{font:inherit}
+
+.progress{
+    position:fixed;left:0;top:0;height:4px;width:0;
+    background:var(--primary);z-index:2000;
+}
+
+header{
+    position:fixed;top:0;left:0;right:0;height:72px;
+    background:rgba(255,255,255,.92);
+    backdrop-filter:blur(15px);
+    border-bottom:1px solid var(--border);
+    display:flex;align-items:center;justify-content:space-between;
+    padding:0 5%;z-index:1000;
+}
+.logo{font-size:22px;font-weight:900;color:var(--primary)}
+.logo span{color:var(--text)}
+nav{display:flex;gap:20px}
+nav a{font-size:13px;font-weight:700;color:#475569}
+nav a:hover{color:var(--primary)}
+.theme-btn,.menu-btn{
+    border:1px solid var(--border);background:var(--surface);
+    color:var(--text);border-radius:10px;padding:8px 11px;cursor:pointer
+}
+.menu-btn{display:none}
+
+.hero{
+    min-height:100vh;padding:140px 7% 80px;
+    display:grid;grid-template-columns:1.05fr .95fr;gap:60px;
+    align-items:center;
+    background:
+      radial-gradient(circle at 85% 20%,#e0e7ff 0,transparent 30%),
+      linear-gradient(135deg,#fbfdff,#eef2ff);
+}
+.badge{
+    display:inline-flex;padding:7px 13px;border-radius:999px;
+    background:#e0e7ff;color:#4338ca;font-size:12px;font-weight:800;
+    letter-spacing:.5px;margin-bottom:18px
+}
+.hero h1{font-size:clamp(44px,6vw,78px);line-height:1.02;margin-bottom:20px}
+.hero h1 span{color:var(--primary)}
+.hero p{font-size:19px;color:var(--muted);max-width:690px}
+.hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
+.btn{
+    border:0;border-radius:11px;padding:12px 18px;cursor:pointer;
+    font-weight:800;display:inline-flex;align-items:center;justify-content:center;
+}
+.primary{background:var(--primary);color:#fff}
+.secondary{background:var(--surface);color:var(--primary);border:1px solid #c7d2fe}
+.btn:hover{transform:translateY(-1px)}
+
+.hero-card{
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:24px;padding:28px;box-shadow:var(--shadow)
+}
+.hero-card h3{text-align:center;margin-bottom:25px}
+.flow{display:flex;flex-direction:column;align-items:center;gap:12px}
+.flow-node{
+    width:220px;padding:16px;border:2px solid #c7d2fe;
+    border-radius:15px;background:#eef2ff;text-align:center;font-weight:800
+}
+.flow-node.proxy{border-color:#8b5cf6;background:#f5f3ff}
+.flow-node.real{border-color:#10b981;background:#ecfdf5}
+.arrow{font-size:24px;color:var(--primary)}
+
+.container{width:min(1160px,92%);margin:auto}
+section{padding:88px 0}
+.section-head{margin-bottom:35px}
+.kicker{
+    font-size:12px;color:var(--primary);font-weight:900;
+    letter-spacing:1px;text-transform:uppercase
+}
+.section-head h2{font-size:38px;line-height:1.2;margin-top:7px}
+.section-head p{color:var(--muted);max-width:780px;margin-top:9px}
+.card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.card{
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:17px;padding:24px;transition:.25s
+}
+.card:hover{transform:translateY(-4px);box-shadow:var(--shadow)}
+.icon{
+    width:44px;height:44px;border-radius:12px;background:#eef2ff;
+    display:grid;place-items:center;font-size:21px;margin-bottom:14px
+}
+.card h3{margin-bottom:8px}
+.card p{color:var(--muted);font-size:14px}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.panel{
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:18px;padding:27px
+}
+.panel h3{margin-bottom:12px}
+.panel ul{padding-left:20px;color:var(--muted)}
+.panel li{margin:8px 0}
+
+
+.uml-wrap{
+    position:relative;background:#fff;border:1px solid var(--border);
+    border-radius:22px;overflow:auto;box-shadow:var(--shadow);padding:25px;
+}
+.uml-svg{display:block;width:1040px;max-width:none;height:auto;margin:0 auto}
+.uml-note{margin-top:16px;padding:14px 16px;border-radius:12px;background:#f8fafc;color:#475569;font-size:13px}
+.structure-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin-top:22px}
+.structure-card{background:var(--surface);border:1px solid var(--border);border-radius:15px;padding:20px;cursor:pointer;transition:.2s}
+.structure-card:hover,.structure-card.active{border-color:var(--primary);background:#eef2ff}
+.structure-card h3{font-size:17px;margin-bottom:6px}
+.structure-card p{font-size:13px;color:var(--muted)}
+.structure-output{margin-top:16px;background:var(--navy);color:#c7d2fe;border-radius:14px;padding:18px;min-height:75px}
+@media(max-width:1000px){.uml-svg{margin-left:0}}
+.uml-note{
+    margin-top:16px;padding:14px 16px;border-radius:12px;
+    background:#f8fafc;color:#475569;font-size:13px
+}
+.structure-cards{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin-top:22px
+}
+.structure-card{
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:15px;padding:20px;cursor:pointer;transition:.2s
+}
+.structure-card:hover,.structure-card.active{
+    border-color:var(--primary);background:#eef2ff
+}
+.structure-card h3{font-size:17px;margin-bottom:6px}
+.structure-card p{font-size:13px;color:var(--muted)}
+.structure-output{
+    margin-top:16px;background:var(--navy);color:#c7d2fe;
+    border-radius:14px;padding:18px;min-height:75px
+}
+
+.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.step{
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:15px;padding:18px;text-align:center;cursor:pointer
+}
+.step.active{border-color:var(--primary);background:#eef2ff}
+.step-no{
+    width:34px;height:34px;border-radius:50%;background:var(--primary);
+    color:#fff;display:grid;place-items:center;margin:0 auto 10px;font-weight:900
+}
+.step-text{font-size:13px;font-weight:700}
+.step-detail{
+    margin-top:20px;background:var(--surface);border:1px solid var(--border);
+    border-radius:14px;padding:18px;text-align:center;font-weight:700
+}
+
+.scenario{
+    background:linear-gradient(135deg,#eef2ff,#f8fafc);
+    border-radius:24px;padding:35px;border:1px solid #dbe3ee
+}
+.scenario-flow{
+    display:flex;align-items:center;justify-content:center;
+    gap:15px;flex-wrap:wrap;margin:30px 0
+}
+.scenario-node{
+    min-width:180px;background:#fff;border:2px solid #cbd5e1;
+    border-radius:15px;padding:19px;text-align:center;font-weight:800
+}
+.scenario-node.proxy{border-color:#8b5cf6}
+.scenario-node.real{border-color:#10b981}
+.status{
+    background:var(--navy);color:#86efac;padding:20px;border-radius:14px;
+    font:14px/1.7 Consolas,monospace;white-space:pre-line;min-height:160px
+}
+
+.playground{
+    background:var(--navy);border-radius:20px;overflow:hidden;
+    box-shadow:0 20px 55px rgba(0,0,0,.18)
+}
+.tabs{display:flex;background:#111827;border-bottom:1px solid #334155;overflow:auto}
+.tab{
+    color:#94a3b8;padding:14px 21px;cursor:pointer;font-weight:800;
+    white-space:nowrap
+}
+.tab.active{background:#1e293b;color:#fff}
+.code-pane{display:none;padding:22px}
+.code-pane.active{display:block}
+pre{
+    color:#dbeafe;font:13px/1.65 Consolas,monospace;
+    white-space:pre-wrap;min-height:400px
+}
+.runbar{
+    border-top:1px solid #334155;padding:14px 18px;
+    display:flex;justify-content:space-between;align-items:center;gap:12px
+}
+.run-btn{background:#22c55e;color:#fff;border:0;border-radius:8px;padding:9px 15px;font-weight:800;cursor:pointer}
+.output{background:#020617;color:#86efac;padding:18px;min-height:135px;font:13px/1.7 Consolas,monospace;white-space:pre-line}
+
+.compare{overflow:auto}
+table{width:100%;border-collapse:collapse;background:var(--surface);border-radius:16px;overflow:hidden}
+th,td{padding:14px;border-bottom:1px solid var(--border);text-align:left;font-size:14px}
+th{background:#eef2ff;color:#3730a3}
+td{color:var(--muted)}
+
+.quiz{
+    max-width:800px;background:var(--surface);border:1px solid var(--border);
+    border-radius:20px;padding:28px
+}
+.option{
+    width:100%;text-align:left;background:var(--surface);
+    border:1px solid var(--border);padding:13px 15px;border-radius:10px;
+    margin-top:10px;cursor:pointer
+}
+.option:hover{border-color:var(--primary);background:#eef2ff}
+#quizResult{margin-top:15px;font-weight:800}
+
+footer{background:#0f172a;color:#cbd5e1;text-align:center;padding:45px 7%}
+footer h3{color:#fff;margin-bottom:7px}
+
+body.dark{
+    --bg:#020617;--surface:#0f172a;--surface2:#111827;
+    --text:#e2e8f0;--muted:#94a3b8;--border:#263449
+}
+body.dark header{background:rgba(15,23,42,.94)}
+body.dark .hero{
+    background:radial-gradient(circle at 85% 20%,#312e81 0,transparent 30%),#020617
+}
+body.dark .hero-card,body.dark .card,body.dark .panel,
+body.dark .structure-card,body.dark .step,body.dark .step-detail,
+body.dark .quiz,body.dark .scenario-node,body.dark table{
+    background:#0f172a
+}
+body.dark .secondary{background:#0f172a}
+body.dark .uml-wrap{background:#0f172a}
+body.dark .uml-box{background:#fff3d8;color:#172033}
+body.dark .uml-note{background:#111827}
+body.dark .triangle{background:#0f172a}
+body.dark .uml-client{color:#fff}
+body.dark .structure-card:hover,body.dark .structure-card.active,
+body.dark .step.active,body.dark .option:hover{background:#1e1b4b}
+body.dark th{background:#1e1b4b;color:#c7d2fe}
+
+@media(max-width:1000px){
+    nav{display:none}
+    .menu-btn{display:block}
+    .hero{grid-template-columns:1fr;padding-top:120px}
+    .card-grid{grid-template-columns:1fr 1fr}
+    .structure-cards{grid-template-columns:1fr 1fr}
+}
+@media(max-width:700px){
+    .hero{padding-left:5%;padding-right:5%}
+    .two-col{grid-template-columns:1fr}
+    .card-grid{grid-template-columns:1fr}
+    .structure-cards{grid-template-columns:1fr}
+    .steps{grid-template-columns:1fr}
+    section{padding:65px 0}
+    .section-head h2{font-size:31px}
+}
+</style>
+</head>
+
+<body>
+
+<div class="progress" id="progress"></div>
+
+<header>
+    <a class="logo" href="#top">Pattern<span>Lab</span></a>
+    <nav>
+        <a href="#intent">Intent</a>
+        <a href="#motivation">Motivation</a>
+        <a href="#applicability">Applicability</a>
+        <a href="#structure">Structure</a>
+        <a href="#scenario">Example</a>
+        <a href="#code">Code</a>
+        <a href="#related">Related</a>
+    </nav>
+    <div style="display:flex;gap:8px">
+        <button class="theme-btn" onclick="toggleTheme()" title="Toggle theme">🌙</button>
+        <button class="menu-btn" onclick="toggleNav()">☰</button>
+    </div>
+</header>
+
+<main id="top">
+
+<section class="hero">
+    <div>
+        <span class="badge">STRUCTURAL DESIGN PATTERN</span>
+        <h1>Proxy<br><span>Design Pattern</span></h1>
+        <p>
+            Provide a substitute or placeholder for another object
+            to control access to it.
+        </p>
+        <div class="hero-actions">
+            <a class="btn primary" href="#scenario">▶ See How It Works</a>
+            <a class="btn secondary" href="#code">View Code</a>
+        </div>
+    </div>
+
+    <div class="hero-card">
+        <h3>Proxy Request Flow</h3>
+        <div class="flow">
+            <div class="flow-node">👤 Client</div>
+            <div class="arrow">↓</div>
+            <div class="flow-node proxy">🛡️ Proxy</div>
+            <div class="arrow">↓</div>
+            <div class="flow-node real">⚙️ Real Subject</div>
+        </div>
+    </div>
+</section>
+
+<section id="intent">
+<div class="container">
+    <div class="section-head">
+        <div class="kicker">01 — Intent</div>
+        <h2>What is Proxy?</h2>
+        <p>The Proxy pattern provides an intermediary that controls access to another object.</p>
+    </div>
+    <div class="card">
+        <div class="icon">🎯</div>
+        <h3>Intent</h3>
+        <p>
+            Proxy is a structural design pattern that provides a substitute
+            or placeholder for another object. The proxy can perform additional
+            work such as access control, lazy initialization, caching, logging,
+            or remote communication before delegating to the real object.
+        </p>
+    </div>
+</div>
+</section>
+
+<section>
+<div class="container">
+    <div class="section-head">
+        <div class="kicker">02 — Terminology</div>
+        <h2>Also Known As</h2>
+    </div>
+    <div class="card-grid">
+        <div class="card"><div class="icon">🔄</div><h3>Surrogate</h3><p>An object that acts on behalf of another object.</p></div>
+        <div class="card"><div class="icon">📦</div><h3>Placeholder</h3><p>An object that represents the real object until it is needed.</p></div>
+        <div class="card"><div class="icon">🛡️</div><h3>Intermediary</h3><p>A layer between the client and the actual object.</p></div>
+    </div>
+</div>
+</section>
+
+<section id="motivation">
+<div class="container">
+    <div class="section-head">
+        <div class="kicker">03 — Motivation</div>
+        <h2>Why do we need Proxy?</h2>
+    </div>
+    <div class="two-col">
+        <div class="panel">
+            <h3>❌ Without Proxy</h3>
+            <ul>
+                <li>The client directly accesses the expensive or sensitive object.</li>
+                <li>Security checks may be mixed with business logic.</li>
+                <li>Repeated expensive operations may not be controlled.</li>
+                <li>The client becomes more dependent on implementation details.</li>
+            </ul>
+        </div>
+        <div class="panel">
+            <h3>✅ With Proxy</h3>
+            <ul>
+                <li>Access can be checked before the real object is used.</li>
+                <li>Lazy initialization can delay expensive creation.</li>
+                <li>Caching can avoid repeated work.</li>
+                <li>Logging and monitoring can be added transparently.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+</section>
+
+<section id="applicability">
+<div class="container">
+    <div class="section-head">
+        <div class="kicker">04 — Applicability</div>
+        <h2>When should you use Proxy?</h2>
+    </div>
+    <div class="card-grid">
+        <div class="card"><div class="icon">⚡</div><h3>Lazy Loading</h3><p>Create an expensive object only when it is actually required.</p></div>
+        <div class="card"><div class="icon">🔐</div><h3>Access Control</h3><p>Allow or deny operations before forwarding them.</p></div>
+        <div class="card"><div class="icon">💾</div><h3>Caching</h3><p>Store and reuse previously obtained results.</p></div>
+        <div class="card"><div class="icon">🌐</div><h3>Remote Proxy</h3><p>Represent an object that exists in another process or machine.</p></div>
+        <div class="card"><div class="icon">📝</div><h3>Logging</h3><p>Record requests before delegating them.</p></div>
+        <div class="card"><div class="icon">🛡️</div><h3>Protection</h3><p>Restrict access to sensitive operations.</p></div>
+    </div>
+</div>
+</section>
+
+<section>
+<div class="container">
+    <div class="section-head">
+        <div class="kicker">05 — Participants</div>
+        <h2>Participants</h2>
+    </div>
+    <div class="card-grid">
+        <div class="card"><div class="icon">👤</div><h3>Client</h3><p>Uses the Subject interface and does not need to know whether it is using a Proxy or RealSubject.</p></div>
+        <div class="card"><div class="icon">📋</div><h3>Subject</h3><p>Defines the common operations implemented by both Proxy and RealSubject.</p></div>
+        <div class="card"><div class="icon">🛡️</div><h3>Proxy</h3><p>Implements Subject, controls access, and contains a reference to the RealSubject.</p></div>
+        <div class="card"><div class="icon">⚙️</div><h3>RealSubject</h3><p>Contains the actual implementation of the requested operations.</p></div>
+    </div>
+</div>
+</section>
+
+<section id="structure">
+<div class="container">
+    <div class="section-head">
+        <div class="kicker">06 — Structure</div>
+        <h2> Proxy Pattern Structure</h2>
+        <p>This structure follows the reference UML: Client depends on Subject; Proxy and RealSubject realize Subject; Proxy contains RealSubject.</p>
+    </div>
+
+    <div class="uml-wrap">
+        <svg class="uml-svg" viewBox="0 0 1040 610" role="img" aria-label="Correct Proxy UML structure">
+            <defs>
+                <marker id="clientArrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+                    <path d="M0,0 L10,5 L0,10 Z" fill="#334155"/>
+                </marker>
+                <marker id="generalizationArrow" markerWidth="16" markerHeight="16" refX="14" refY="8" orient="auto">
+                    <path d="M1,1 L15,8 L1,15 Z" fill="#ffffff" stroke="#9a8074" stroke-width="1.5"/>
+                </marker>
+            </defs>
+
+            <!-- Client -->
+            <rect x="20" y="55" width="160" height="72" rx="13" fill="#b35a2d"/>
+            <text x="100" y="99" text-anchor="middle" fill="#fff" font-size="18" font-weight="700">Client</text>
+
+            <!-- Client directed dependency -->
+            <line x1="180" y1="91" x2="370" y2="91" stroke="#334155" stroke-width="2.2" marker-end="url(#clientArrow)"/>
+
+            <!-- Subject -->
+            <rect x="370" y="20" width="310" height="180" rx="20" fill="#fff3d8" stroke="#58a6a6" stroke-width="2"/>
+            <line x1="370" y1="76" x2="680" y2="76" stroke="#58a6a6" stroke-width="1.5"/>
+            <text x="525" y="45" text-anchor="middle" fill="#374151" font-size="15" font-style="italic">&lt;&lt;Interface&gt;&gt;</text>
+            <text x="525" y="66" text-anchor="middle" fill="#172033" font-size="18" font-weight="700">Subject</text>
+            <text x="390" y="112" fill="#374151" font-size="15">+ commonMethod1()</text>
+            <text x="390" y="139" fill="#374151" font-size="15">+ commonMethod2()</text>
+
+            <!-- Realization/generalization network -->
+            <line x1="300" y1="305" x2="890" y2="305" stroke="#a98f83" stroke-width="1.8" stroke-dasharray="6 5"/>
+            <line x1="300" y1="305" x2="300" y2="405" stroke="#a98f83" stroke-width="1.8" stroke-dasharray="6 5"/>
+            <line x1="890" y1="305" x2="890" y2="405" stroke="#a98f83" stroke-width="1.8" stroke-dasharray="6 5"/>
+            <line x1="525" y1="305" x2="525" y2="205" stroke="#a98f83" stroke-width="1.8" stroke-dasharray="6 5" marker-end="url(#generalizationArrow)"/>
+
+            <!-- Proxy -->
+            <rect x="185" y="405" width="285" height="165" rx="15" fill="#fff3d8" stroke="#58a6a6" stroke-width="2"/>
+            <line x1="185" y1="450" x2="470" y2="450" stroke="#58a6a6" stroke-width="1.5"/>
+            <line x1="185" y1="505" x2="470" y2="505" stroke="#58a6a6" stroke-width="1.5"/>
+            <text x="327.5" y="433" text-anchor="middle" fill="#172033" font-size="18" font-weight="700">Proxy</text>
+            <text x="202" y="478" fill="#374151" font-size="14">+ actualObject: RealSubject</text>
+            <text x="202" y="530" fill="#374151" font-size="14">+ commonMethod1()</text>
+            <text x="202" y="551" fill="#374151" font-size="14">+ commonMethod2()</text>
+            <text x="202" y="572" fill="#374151" font-size="14">+ proxyMethods()</text>
+
+            <!-- RealSubject -->
+            <rect x="750" y="405" width="285" height="165" rx="15" fill="#fff3d8" stroke="#58a6a6" stroke-width="2"/>
+            <line x1="750" y1="450" x2="1035" y2="450" stroke="#58a6a6" stroke-width="1.5"/>
+            <text x="892.5" y="433" text-anchor="middle" fill="#172033" font-size="18" font-weight="700">RealSubject</text>
+            <text x="767" y="478" fill="#374151" font-size="14">...</text>
+            <text x="767" y="512" fill="#374151" font-size="14">+ commonMethod1()</text>
+            <text x="767" y="535" fill="#374151" font-size="14">+ commonMethod2()</text>
+            <text x="767" y="558" fill="#374151" font-size="14">- realSubjectMethods()</text>
+
+            <!-- Composition: Proxy ◆── RealSubject -->
+            <polygon points="470,485 482,475 494,485 482,495" fill="#8b5e4a"/>
+            <line x1="494" y1="485" x2="750" y2="485" stroke="#8b5e4a" stroke-width="2"/>
+        </svg>
+
+        <div class="uml-note">
+            <strong>Arrow/relationship key:</strong>
+            solid arrow = Client dependency on Subject;
+            dashed line + hollow triangle = Proxy/RealSubject realization of Subject;
+            filled diamond = Proxy composition/reference to RealSubject.
+        </div>
+    </div>
+
+    <div class="structure-cards">
+        <div class="structure-card active" onclick="explainStructure(this,'client')"><h3>👤 Client</h3><p>Uses the Subject abstraction.</p></div>
+        <div class="structure-card" onclick="explainStructure(this,'subject')"><h3>📋 Subject</h3><p>Defines the common operations.</p></div>
+        <div class="structure-card" onclick="explainStructure(this,'proxy')"><h3>🛡️ Proxy</h3><p>Controls access and contains RealSubject.</p></div>
+        <div class="structure-card" onclick="explainStructure(this,'real')"><h3>⚙️ RealSubject</h3><p>Performs the actual operation.</p></div>
+    </div>
+
+    <div class="structure-output" id="structureOutput">
+        Client → Subject. Proxy and RealSubject implement Subject. Proxy contains a RealSubject reference and delegates requests after performing its extra work.
+    </div>
+</div>
+</section>
+
+<section>
+<div class="container">
+    <div class="section-head">
+        <div class="kicker">07 — Collaboration</div>
+        <h2>How the objects collaborate</h2>
+    </div>
+
+    <div class="steps">
+        <div class="step active" onclick="setStep(this,1)"><div class="step-no">1</div><div class="step-text">Client sends request</div></div>
+        <div class="step" onclick="setStep(this,2)"><div class="step-no">2</div><div class="step-text">Proxy receives request</div></div>
+        <div class="step" onclick="setStep(this,3)"><div class="step-no">3</div><div class="step-text">Proxy performs extra work</div></div>
+        <div class="step" onclick="setStep(this,4)"><div class="step-no">4</div><div class="step-text">Proxy delegates</div></div>
+        <div class="step" onclick="setStep(this,5)"><div class="step-no">5</div><div class="step-text">Response returns</div></div>
+    </div>
+
+    <div class="step-detail" id="stepDetail">
+        Step 1: The client sends a request using the Subject interface.
+    </div>
+</div>
+</section>
+
+<section id="scenario">
+<div class="container">
+    <div class="section-head">
+        <div class="kicker">08 — Real Scenario</div>
+        <h2>Protection Proxy — Online Banking</h2>
+        <p>The exact same structure is used below, with real banking names replacing the generic pattern names.</p>
+    </div>
+
+    <div class="uml-wrap">
+        <svg class="uml-svg" viewBox="0 0 1040 610" role="img" aria-label="Online Banking Proxy UML structure">
+            <defs>
+                <marker id="bankClientArrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+                    <path d="M0,0 L10,5 L0,10 Z" fill="#334155"/>
+                </marker>
+                <marker id="bankGeneralizationArrow" markerWidth="16" markerHeight="16" refX="14" refY="8" orient="auto">
+                    <path d="M1,1 L15,8 L1,15 Z" fill="#ffffff" stroke="#9a8074" stroke-width="1.5"/>
+                </marker>
+            </defs>
+
+            <!-- Client -->
+            <rect x="20" y="55" width="160" height="72" rx="13" fill="#b35a2d"/>
+            <text x="100" y="99" text-anchor="middle" fill="#fff" font-size="17" font-weight="700">Banking Client</text>
+
+            <!-- Client -> Subject -->
+            <line x1="180" y1="91" x2="370" y2="91" stroke="#334155" stroke-width="2.2" marker-end="url(#bankClientArrow)"/>
+
+            <!-- Subject -->
+            <rect x="370" y="20" width="310" height="180" rx="20" fill="#fff3d8" stroke="#58a6a6" stroke-width="2"/>
+            <line x1="370" y1="76" x2="680" y2="76" stroke="#58a6a6" stroke-width="1.5"/>
+            <text x="525" y="45" text-anchor="middle" fill="#374151" font-size="15" font-style="italic">&lt;&lt;Interface&gt;&gt;</text>
+            <text x="525" y="66" text-anchor="middle" fill="#172033" font-size="18" font-weight="700">BankAccount</text>
+            <text x="390" y="112" fill="#374151" font-size="15">+ getBalance()</text>
+            <text x="390" y="139" fill="#374151" font-size="15">+ withdraw(amount)</text>
+
+            <!-- Same realization network -->
+            <line x1="300" y1="305" x2="890" y2="305" stroke="#a98f83" stroke-width="1.8" stroke-dasharray="6 5"/>
+            <line x1="300" y1="305" x2="300" y2="405" stroke="#a98f83" stroke-width="1.8" stroke-dasharray="6 5"/>
+            <line x1="890" y1="305" x2="890" y2="405" stroke="#a98f83" stroke-width="1.8" stroke-dasharray="6 5"/>
+            <line x1="525" y1="305" x2="525" y2="205" stroke="#a98f83" stroke-width="1.8" stroke-dasharray="6 5" marker-end="url(#bankGeneralizationArrow)"/>
+
+            <!-- Proxy -->
+            <rect x="185" y="405" width="285" height="165" rx="15" fill="#fff3d8" stroke="#58a6a6" stroke-width="2"/>
+            <line x1="185" y1="450" x2="470" y2="450" stroke="#58a6a6" stroke-width="1.5"/>
+            <line x1="185" y1="505" x2="470" y2="505" stroke="#58a6a6" stroke-width="1.5"/>
+            <text x="327.5" y="433" text-anchor="middle" fill="#172033" font-size="16" font-weight="700">BankAccountProxy</text>
+            <text x="202" y="478" fill="#374151" font-size="13">+ realAccount: RealBankAccount</text>
+            <text x="202" y="530" fill="#374151" font-size="14">+ getBalance()</text>
+            <text x="202" y="551" fill="#374151" font-size="14">+ withdraw(amount)</text>
+            <text x="202" y="572" fill="#374151" font-size="14">+ checkAccess()</text>
+
+            <!-- Real Subject -->
+            <rect x="750" y="405" width="285" height="165" rx="15" fill="#fff3d8" stroke="#58a6a6" stroke-width="2"/>
+            <line x1="750" y1="450" x2="1035" y2="450" stroke="#58a6a6" stroke-width="1.5"/>
+            <text x="892.5" y="433" text-anchor="middle" fill="#172033" font-size="16" font-weight="700">RealBankAccount</text>
+            <text x="767" y="478" fill="#374151" font-size="14">...</text>
+            <text x="767" y="512" fill="#374151" font-size="14">+ getBalance()</text>
+            <text x="767" y="535" fill="#374151" font-size="14">+ withdraw(amount)</text>
+            <text x="767" y="558" fill="#374151" font-size="14">- accountOperations()</text>
+
+            <!-- Composition -->
+            <polygon points="470,485 482,475 494,485 482,495" fill="#8b5e4a"/>
+            <line x1="494" y1="485" x2="750" y2="485" stroke="#8b5e4a" stroke-width="2"/>
+        </svg>
+
+        <div class="uml-note">
+            <strong>Same relationship:</strong>
+            Banking Client → BankAccount; BankAccountProxy and RealBankAccount
+            implement BankAccount; BankAccountProxy ◆── RealBankAccount.
+        </div>
+    </div>
+
+    <div class="scenario" style="margin-top:24px">
+        <h3>How the Protection Proxy works</h3>
+
+        <div class="scenario-flow">
+            <div class="scenario-node">👤<br>Banking Client</div>
+            <div>→</div>
+            <div class="scenario-node proxy">🛡️<br>BankAccountProxy</div>
+            <div>→</div>
+            <div class="scenario-node real">🏦<br>RealBankAccount</div>
+        </div>
+
+        <div class="two-col" style="margin-bottom:20px">
+            <div class="panel">
+                <h3>Proxy responsibilities</h3>
+                <ul>
+                    <li>Receives getBalance() and withdraw() calls.</li>
+                    <li>Checks authentication before access.</li>
+                    <li>Creates RealBankAccount only when required.</li>
+                    <li>Delegates allowed requests to RealBankAccount.</li>
+                </ul>
+            </div>
+            <div class="panel">
+                <h3>Pattern mapping</h3>
+                <ul>
+                    <li><strong>Client:</strong> Banking Client</li>
+                    <li><strong>Subject:</strong> BankAccount</li>
+                    <li><strong>Proxy:</strong> BankAccountProxy</li>
+                    <li><strong>RealSubject:</strong> RealBankAccount</li>
+                </ul>
+            </div>
+        </div>
+
+        <button class="btn primary" onclick="runScenario(true)">▶ Authorized User</button>
+        <button class="btn secondary" onclick="runScenario(false)">🔒 Unauthorized User</button>
+        <button class="btn secondary" onclick="resetScenario()">↻ Reset</button>
+
+        <div class="status" id="scenarioStatus" style="margin-top:18px">Proxy Status
+
+Waiting for a banking request...</div>
+    </div>
+</div>
+</section>
+
+<section id="code">
+<div class="container">
+    <div class="section-head">
+        <div class="kicker">09 — Code</div>
+        <h2>Protection Proxy Implementation</h2>
+        <p>
+            The code below implements the same Online Banking scenario shown above.
+        </p>
+    </div>
+
+    <div class="playground">
+        <div class="tabs">
+            <div class="tab active" onclick="showCode('java',this)">Java</div>
+            <div class="tab" onclick="showCode('python',this)">Python</div>
+            <div class="tab" onclick="showCode('cpp',this)">C++</div>
+        </div>
+
+        <div class="code-pane active" id="java">
+<pre>interface BankAccount {
+
+    void getBalance();
+
+    void withdraw(double amount);
+}
+
+
+class RealBankAccount implements BankAccount {
+
+    private double balance = 50000;
+
+    @Override
+    public void getBalance() {
+        System.out.println(
+            "Current Balance: ₹" + balance
+        );
+    }
+
+    @Override
+    public void withdraw(double amount) {
+
+        if (amount <= balance) {
+
+            balance -= amount;
+
+            System.out.println(
+                "Withdrawal successful: ₹" + amount
+            );
+
+            System.out.println(
+                "Remaining Balance: ₹" + balance
+            );
+
+        } else {
+
+            System.out.println(
+                "Insufficient balance"
+            );
+        }
+    }
+}
+
+
+class BankAccountProxy implements BankAccount {
+
+    private RealBankAccount realAccount;
+
+    private String username;
+
+    private boolean authenticated;
+
+
+    public BankAccountProxy(
+        String username,
+        boolean authenticated
+    ) {
+        this.username = username;
+        this.authenticated = authenticated;
+    }
+
+
+    private boolean checkAccess() {
+
+        System.out.println(
+            "Checking access for: " + username
+        );
+
+        return authenticated;
+    }
+
+
+    @Override
+    public void getBalance() {
+
+        if (!checkAccess()) {
+
+            System.out.println("Access denied!");
+            return;
+        }
+
+        if (realAccount == null) {
+
+            realAccount = new RealBankAccount();
+
+            System.out.println(
+                "Real bank account created."
+            );
+        }
+
+        realAccount.getBalance();
+    }
+
+
+    @Override
+    public void withdraw(double amount) {
+
+        if (!checkAccess()) {
+
+            System.out.println("Access denied!");
+            return;
+        }
+
+        if (realAccount == null) {
+            realAccount = new RealBankAccount();
+        }
+
+        realAccount.withdraw(amount);
+    }
+}
+
+
+public class Main {
+
+    public static void main(String[] args) {
+
+        BankAccount account =
+            new BankAccountProxy(
+                "Priya",
+                true
+            );
+
+        account.getBalance();
+
+        System.out.println();
+
+        account.withdraw(5000);
+
+        System.out.println();
+
+        account.getBalance();
+    }
+}</pre>
+        </div>
+
+        <div class="code-pane" id="python">
+<pre>from abc import ABC, abstractmethod
+
+
+class BankAccount(ABC):
+
+    @abstractmethod
+    def get_balance(self):
+        pass
+
+    @abstractmethod
+    def withdraw(self, amount):
+        pass
+
+
+class RealBankAccount(BankAccount):
+
+    def __init__(self):
+        self.balance = 50000
+
+    def get_balance(self):
+        print(f"Current Balance: ₹{self.balance}")
+
+    def withdraw(self, amount):
+
+        if amount <= self.balance:
+
+            self.balance -= amount
+
+            print(
+                f"Withdrawal successful: ₹{amount}"
+            )
+
+            print(
+                f"Remaining Balance: ₹{self.balance}"
+            )
+
+        else:
+            print("Insufficient balance")
+
+
+class BankAccountProxy(BankAccount):
+
+    def __init__(self, username, authenticated):
+
+        self.username = username
+        self.authenticated = authenticated
+        self.real_account = None
+
+    def check_access(self):
+
+        print(
+            f"Checking access for: {self.username}"
+        )
+
+        return self.authenticated
+
+    def get_balance(self):
+
+        if not self.check_access():
+
+            print("Access denied!")
+            return
+
+        if self.real_account is None:
+
+            self.real_account = RealBankAccount()
+
+            print(
+                "Real bank account created."
+            )
+
+        self.real_account.get_balance()
+
+    def withdraw(self, amount):
+
+        if not self.check_access():
+
+            print("Access denied!")
+            return
+
+        if self.real_account is None:
+            self.real_account = RealBankAccount()
+
+        self.real_account.withdraw(amount)
+
+
+account = BankAccountProxy(
+    "Priya",
+    True
+)
+
+account.get_balance()
+account.withdraw(5000)
+account.get_balance()</pre>
+        </div>
+
+        <div class="code-pane" id="cpp">
+<pre>#include &lt;iostream&gt;
+#include &lt;string&gt;
+
+using namespace std;
+
+
+class BankAccount {
+
+public:
+    virtual void getBalance() = 0;
+    virtual void withdraw(double amount) = 0;
+
+    virtual ~BankAccount() {}
+};
+
+
+class RealBankAccount : public BankAccount {
+
+private:
+    double balance = 50000;
+
+public:
+
+    void getBalance() override {
+
+        cout << "Current Balance: ₹"
+             << balance << endl;
+    }
+
+    void withdraw(double amount) override {
+
+        if (amount <= balance) {
+
+            balance -= amount;
+
+            cout << "Withdrawal successful: ₹"
+                 << amount << endl;
+
+            cout << "Remaining Balance: ₹"
+                 << balance << endl;
+
+        } else {
+
+            cout << "Insufficient balance"
+                 << endl;
+        }
+    }
+};
+
+
+class BankAccountProxy : public BankAccount {
+
+private:
+    RealBankAccount* realAccount = nullptr;
+
+    string username;
+
+    bool authenticated;
+
+    bool checkAccess() {
+
+        cout << "Checking access for: "
+             << username << endl;
+
+        return authenticated;
+    }
+
+public:
+
+    BankAccountProxy(
+        string name,
+        bool auth
+    ) {
+        username = name;
+        authenticated = auth;
+    }
+
+
+    void getBalance() override {
+
+        if (!checkAccess()) {
+
+            cout << "Access denied!"
+                 << endl;
+
+            return;
+        }
+
+        if (realAccount == nullptr) {
+
+            realAccount =
+                new RealBankAccount();
+
+            cout <<
+                "Real bank account created."
+                << endl;
+        }
+
+        realAccount->getBalance();
+    }
+
+
+    void withdraw(double amount) override {
+
+        if (!checkAccess()) {
+
+            cout << "Access denied!"
+                 << endl;
+
+            return;
+        }
+
+        if (realAccount == nullptr) {
+            realAccount =
+                new RealBankAccount();
+        }
+
+        realAccount->withdraw(amount);
+    }
+};
+
+
+int main() {
+
+    BankAccount* account =
+        new BankAccountProxy(
+            "Priya",
+            true
+        );
+
+    account->getBalance();
+
+    account->withdraw(5000);
+
+    account->getBalance();
+
+    return 0;
+}</pre>
+        </div>
+
+        <div class="runbar">
+            <span style="color:#94a3b8">▶ Interactive simulation</span>
+            <button class="run-btn" onclick="runCode()">Run Example</button>
+        </div>
+
+        <div class="output" id="codeOutput">
+Click "Run Example" to see the Proxy execution.
+        </div>
+    </div>
+</div>
+</section>
+
+<section>
+<div class="container">
+    <div class="section-head">
+        <div class="kicker">10 — Consequences</div>
+        <h2>Advantages & Disadvantages</h2>
+    </div>
+    <div class="two-col">
+        <div class="card" style="border-top:4px solid var(--success)">
+            <h3>✅ Advantages</h3>
+            <p>• Controls access to another object</p>
+            <p>• Supports lazy initialization</p>
+            <p>• Enables caching</p>
+            <p>• Adds security and logging without changing the RealSubject</p>
+            <p>• Keeps client code independent from object creation details</p>
+        </div>
+        <div class="card" style="border-top:4px solid var(--danger)">
+            <h3>⚠️ Disadvantages</h3>
+            <p>• Adds an additional abstraction layer</p>
+            <p>• Can increase code complexity</p>
+            <p>• May add processing overhead</p>
+            <p>• Debugging can involve an extra object</p>
+            <p>• A poorly designed proxy can become difficult to maintain</p>
+        </div>
+    </div>
+</div>
+</section>
+
+<section id="related">
+<div class="container">
+    <div class="section-head">
+        <div class="kicker">11 — Related Patterns</div>
+        <h2>Proxy and Related Patterns</h2>
+    </div>
+    <div class="compare">
+        <table>
+            <thead>
+                <tr><th>Pattern</th><th>Main Purpose</th><th>Key Difference</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><strong>Proxy</strong></td><td>Controls access</td><td>Represents or protects another object.</td></tr>
+                <tr><td><strong>Decorator</strong></td><td>Adds behavior</td><td>Extends responsibilities while keeping the same interface.</td></tr>
+                <tr><td><strong>Adapter</strong></td><td>Changes interface</td><td>Converts one interface into another.</td></tr>
+                <tr><td><strong>Facade</strong></td><td>Simplifies access</td><td>Provides a simpler interface to a subsystem.</td></tr>
+                <tr><td><strong>Flyweight</strong></td><td>Shares objects</td><td>Reduces memory by sharing common state.</td></tr>
+                <tr><td><strong>Bridge</strong></td><td>Separates abstraction</td><td>Separates abstraction from implementation.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</section>
+
+<section>
+<div class="container">
+    <div class="section-head">
+        <div class="kicker">12 — Test Yourself</div>
+        <h2>Quick Quiz</h2>
+    </div>
+    <div class="quiz">
+        <h3>What is the primary purpose of the Proxy pattern?</h3>
+        <button class="option" onclick="answer(false)">A. Convert one interface into another</button>
+        <button class="option" onclick="answer(true)">B. Control access to another object</button>
+        <button class="option" onclick="answer(false)">C. Create every object eagerly</button>
+        <button class="option" onclick="answer(false)">D. Remove the need for interfaces</button>
+        <div id="quizResult"></div>
+    </div>
+</div>
+</section>
+
+<section>
+<div class="container">
+    <div class="section-head">
+        <div class="kicker">13 — Quick Summary</div>
+        <h2>Proxy in 30 Seconds</h2>
+    </div>
+    <div class="card" style="text-align:center">
+        <h3>Client → Subject ← Proxy → RealSubject</h3>
+        <p style="margin-top:15px">
+            The Client communicates through the Subject interface.
+            The Proxy implements the same interface, controls access,
+            and delegates valid requests to the RealSubject.
+        </p>
+        <h3 style="color:var(--primary);margin-top:15px">
+            Proxy = Intermediary + Controlled Access + Delegation
+        </h3>
+    </div>
+</div>
+</section>
+
+</main>
+
+<footer>
+    <h3>PatternLab</h3>
+    <p>Interactive Design Pattern Learning Platform</p>
+    <p style="margin-top:7px;font-size:13px">Proxy Design Pattern • Structural Pattern</p>
+</footer>
+
+<script>
+/* Theme */
+function toggleTheme(){
+    document.body.classList.toggle("dark");
+    localStorage.setItem(
+        "proxy-theme",
+        document.body.classList.contains("dark") ? "dark" : "light"
+    );
+}
+if(localStorage.getItem("proxy-theme")==="dark"){
+    document.body.classList.add("dark");
+}
+
+/* Mobile navigation */
+function toggleNav(){
+    const nav=document.querySelector("nav");
+    nav.style.display = nav.style.display==="flex" ? "" : "flex";
+    nav.style.position="absolute";
+    nav.style.top="72px";
+    nav.style.left="0";
+    nav.style.right="0";
+    nav.style.padding="18px 5%";
+    nav.style.background="var(--surface)";
+    nav.style.flexDirection="column";
+    nav.style.borderBottom="1px solid var(--border)";
+}
+
+/* Scroll progress */
+window.addEventListener("scroll",()=>{
+    const top=document.documentElement.scrollTop;
+    const height=document.documentElement.scrollHeight-document.documentElement.clientHeight;
+    document.getElementById("progress").style.width =
+        (height ? top/height*100 : 0)+"%";
+});
+
+/* Structure explanations */
+function explainStructure(el,type){
+    document.querySelectorAll(".structure-card")
+        .forEach(x=>x.classList.remove("active"));
+    el.classList.add("active");
+
+    const text={
+        client:
+        "CLIENT: The client works with the Subject interface. It does not need to know whether the object is a Proxy or the RealSubject.",
+
+        subject:
+        "SUBJECT: Subject defines the commonMethod1() and commonMethod2() operations. Both Proxy and RealSubject implement this interface.",
+
+        proxy:
+        "PROXY: Proxy implements Subject and stores actualObject: RealSubject. It can check permissions, cache results, log requests, initialize the real object, and then delegate the operation.",
+
+        real:
+        "REALSUBJECT: RealSubject contains the actual implementation. It performs the real business operation after the Proxy allows the request."
+    };
+
+    document.getElementById("structureOutput").innerText=text[type];
+}
+
+/* Collaboration */
+function setStep(el,n){
+    document.querySelectorAll(".step").forEach(x=>x.classList.remove("active"));
+    el.classList.add("active");
+
+    const details={
+        1:"Step 1: The Client calls a method through the Subject interface.",
+        2:"Step 2: The Proxy receives the same method call because it implements Subject.",
+        3:"Step 3: The Proxy performs additional work such as authentication, authorization, caching, logging, or lazy initialization.",
+        4:"Step 4: The Proxy delegates the request to its actualObject, which is the RealSubject.",
+        5:"Step 5: The RealSubject produces the result and the response returns through the Proxy to the Client."
+    };
+
+    document.getElementById("stepDetail").innerText=details[n];
+}
+
+/* Banking scenario simulation */
+function runScenario(authenticated){
+    const status=document.getElementById("scenarioStatus");
+
+    if(authenticated){
+        status.innerText=
+`Proxy Status
+
+✓ Request received from Banking Client
+✓ Checking authentication...
+✓ User authenticated
+✓ Proxy allows access
+✓ RealBankAccount object created
+✓ getBalance() executed
+✓ Current Balance: ₹50000
+
+The Proxy controlled access before delegating to RealSubject.`;
+    }else{
+        status.innerText=
+`Proxy Status
+
+✓ Request received from Banking Client
+✓ Checking authentication...
+✗ User is not authenticated
+✗ Access denied
+
+The RealBankAccount was not accessed.`;
+    }
+}
+function resetScenario(){
+    document.getElementById("scenarioStatus").innerText=
+`Proxy Status
+
+Waiting for a banking request...`;
+}
+
+/* Code tabs */
+function showCode(id,el){
+    document.querySelectorAll(".code-pane").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+    el.classList.add("active");
+}
+
+/* Code simulation */
+function runCode(){
+    document.getElementById("codeOutput").innerText=
+`$ Running Proxy example...
+
+Checking access for: Priya
+Real bank account created.
+Current Balance: ₹50000.0
+
+Checking access for: Priya
+Withdrawal successful: ₹5000.0
+Remaining Balance: ₹45000.0
+
+Checking access for: Priya
+Current Balance: ₹45000.0
+
+✓ The Client used BankAccount.
+✓ BankAccountProxy performed the access check.
+✓ Proxy delegated the operation to RealBankAccount.
+✓ The RealSubject contained the actual account logic.`;
+}
+
+/* Quiz */
+function answer(correct){
+    const result=document.getElementById("quizResult");
+
+    if(correct){
+        result.innerText="✅ Correct! Proxy controls access to another object.";
+        result.style.color="#16a34a";
+    }else{
+        result.innerText="❌ Try again. Think about the intermediary between the Client and RealSubject.";
+        result.style.color="#dc2626";
+    }
+}
+</script>
+
+</body>
+</html>
